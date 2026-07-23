@@ -4,6 +4,16 @@ Công cụ hỗ trợ lập kế hoạch xếp kiện hình hộp vào container
 40HC. Bản này đã được chuyển sang Vite thuần để chạy trực tiếp trên máy tính
 và tự động xuất bản bằng GitHub Pages.
 
+## Đăng nhập
+
+Khi mở chương trình, người dùng phải nhập đúng tên tài khoản và mật khẩu đã
+được cấp. Thông tin đăng nhập phân biệt chữ hoa và chữ thường. Nhập sai sẽ
+hiện thông báo **Không thể sử dụng chương trình** và không mở giao diện tính
+container.
+
+Phiên đăng nhập chỉ tồn tại trong lần mở trang hiện tại. Khi tải lại trang,
+chương trình sẽ yêu cầu đăng nhập lại.
+
 ## Chạy nhanh trên Windows
 
 1. Cài **Node.js 22 LTS** từ <https://nodejs.org/>.
@@ -85,8 +95,11 @@ vật liệu chèn lót và quy định vận chuyển liên quan.
 ## Cấu trúc chính
 
 - `src/App.tsx`: giao diện V4.
+- `src/AuthGate.tsx`: màn hình và luồng đăng nhập.
+- `src/auth.ts`: kiểm tra thông tin đăng nhập bằng mã băm.
 - `src/main.tsx`: điểm khởi động Vite.
 - `lib/packing-engine-v4.ts`: bộ giải V4.
+- `tests/auth.test.ts`: kiểm thử đăng nhập đúng và sai.
 - `tests/packing-engine-v4.test.ts`: kiểm thử thuật toán.
 - `.github/workflows/deploy.yml`: tự động build và đăng GitHub Pages.
 - `vite.config.ts`: cấu hình đường dẫn khi chạy trên GitHub Pages.

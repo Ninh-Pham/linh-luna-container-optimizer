@@ -1,4 +1,4 @@
-# Linh Luna T&M – Container Optimizer V4
+# Linh Luna T&M – Container Optimizer V5
 
 Công cụ hỗ trợ lập kế hoạch xếp kiện hình hộp vào container 20GP, 40GP và
 40HC. Bản này đã được chuyển sang Vite thuần để chạy trực tiếp trên máy tính
@@ -14,15 +14,14 @@ container.
 Phiên đăng nhập chỉ tồn tại trong lần mở trang hiện tại. Khi tải lại trang,
 chương trình sẽ yêu cầu đăng nhập lại.
 
-## Chạy nhanh trên Windows
+## Chạy mã nguồn trên Windows
 
 1. Cài **Node.js 22 LTS** từ <https://nodejs.org/>.
 2. Giải nén toàn bộ file ZIP.
 3. Nhấp đúp `CAI_DAT_VA_CHAY_WINDOWS.bat`.
-4. Lần chạy đầu tiên sẽ cài thư viện, sau đó trình duyệt tự mở.
-5. Giữ cửa sổ lệnh mở trong khi sử dụng.
+4. Lần đầu chương trình cài thư viện rồi tự mở trình duyệt.
 
-Nếu trình duyệt không tự mở, truy cập <http://127.0.0.1:5173>.
+Bản Windows Offline được đóng gói riêng và có sẵn thư mục `dist`.
 
 ## Chạy bằng dòng lệnh
 
@@ -53,6 +52,9 @@ Workflow `.github/workflows/deploy.yml` sẽ tự:
 Không cần tự tạo `index.html`, `src/main.tsx` hoặc `deploy.yml`; các file này đã
 có sẵn trong bộ mã nguồn.
 
+Kết quả và phạm vi kiểm thử V5 được ghi trong
+[`KET_QUA_KIEM_THU_V5.md`](KET_QUA_KIEM_THU_V5.md).
+
 ## Cách dùng
 
 ### Nhập hàng
@@ -70,12 +72,22 @@ Mỗi dòng là một loại kiện:
 
 ### Chọn cách tính
 
-- **Tối ưu tự động:** thử các loại container và ưu tiên số container ít nhất.
-- **Tự chọn:** kiểm tra đúng số lượng container do người dùng nhập.
+- **Tối ưu tự động:** thử tất cả loại container và ưu tiên tổng số container
+  ít nhất; nếu có nhiều phương án cùng số lượng thì chọn phương án có tổng
+  dung tích danh nghĩa nhỏ hơn.
+- **Tự chọn loại container:** người dùng chọn các loại được phép sử dụng, V5
+  tự tìm số lượng container tối thiểu trong các loại đó.
 - **Thực tế vận hành:** chừa khoảng dự phòng và kiểm tra hướng kiện qua cửa.
 - **So sánh SeaRates:** dùng kích thước danh nghĩa, không chừa khoảng hở.
 
-### Những gì V4 kiểm tra
+### Ca đối chiếu SeaRates trong V5
+
+Với `50` kiện, mỗi kiện `180 × 98 × 98 cm`, nặng `200 kg`, V5 phối hợp nhiều
+hướng xoay trong cùng một lớp và tìm được phương án `2` container, phân bổ
+`26 + 24` kiện. Nút **Nạp ca đối chiếu 50 kiện** trên giao diện điền sẵn bộ dữ
+liệu này.
+
+### Những gì V5 kiểm tra
 
 - Kích thước lọt lòng và cửa.
 - Tải hàng tối đa của container.
@@ -84,6 +96,10 @@ Mỗi dòng là một loại kiện:
 - Hướng đặt, khoảng hở thao tác và thứ tự dỡ.
 - Trọng tâm và tải tập trung ước tính.
 - Nhiều thứ tự hàng, hướng xoay và tổ hợp container.
+- Quy hoạch động hai chiều cho từng lớp hàng đồng nhất để không bỏ sót kiểu
+  ghép xen kẽ theo chiều dài và chiều rộng.
+- Tìm kiếm toàn cục theo mục tiêu: xếp đủ hàng → ít container nhất → ít dung
+  tích dư hơn.
 
 ## Lưu ý an toàn
 
@@ -94,12 +110,12 @@ vật liệu chèn lót và quy định vận chuyển liên quan.
 
 ## Cấu trúc chính
 
-- `src/App.tsx`: giao diện V4.
+- `src/App.tsx`: giao diện V5.
 - `src/AuthGate.tsx`: màn hình và luồng đăng nhập.
 - `src/auth.ts`: kiểm tra thông tin đăng nhập bằng mã băm.
 - `src/main.tsx`: điểm khởi động Vite.
-- `lib/packing-engine-v4.ts`: bộ giải V4.
+- `lib/packing-engine-v5.ts`: bộ giải V5.
 - `tests/auth.test.ts`: kiểm thử đăng nhập đúng và sai.
-- `tests/packing-engine-v4.test.ts`: kiểm thử thuật toán.
+- `tests/packing-engine-v5.test.ts`: kiểm thử thuật toán.
 - `.github/workflows/deploy.yml`: tự động build và đăng GitHub Pages.
 - `vite.config.ts`: cấu hình đường dẫn khi chạy trên GitHub Pages.

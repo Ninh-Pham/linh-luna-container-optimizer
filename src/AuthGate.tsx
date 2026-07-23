@@ -68,7 +68,7 @@ export default function AuthGate({ children }: AuthGateProps) {
             </span>
             <span>
               <b>Linh Luna T&amp;M</b>
-              <small>Container Optimizer V4</small>
+              <small>Container Optimizer V5</small>
             </span>
           </a>
 

@@ -15,7 +15,7 @@ linh-luna-container-optimizer
 5. Kéo toàn bộ các file và thư mục vào trang GitHub.
 6. Chờ tải xong, kéo xuống cuối và nhấn **Commit changes**.
 7. Mở tab **Actions**.
-8. Chờ workflow **Deploy Linh Luna V4** có dấu tích xanh.
+8. Chờ workflow **Deploy Linh Luna V5** có dấu tích xanh.
 9. Mở lại đường link chương trình và nhấn `Ctrl + F5`.
 
 Không tải nguyên file ZIP. Không xóa file:

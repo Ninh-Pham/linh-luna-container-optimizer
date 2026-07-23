@@ -1,6 +1,6 @@
 {
   "name": "linh-luna-container-optimizer",
-  "version": "4.1.0",
+  "version": "5.0.0",
   "private": true,
   "type": "module",
   "displayName": "Tối ưu xếp hàng Container",
@@ -12,7 +12,7 @@
     "dev:local": "vite --host 127.0.0.1 --port 5173 --strictPort",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --test tests/packing-engine-v4.test.ts tests/auth.test.ts",
+    "test": "node --experimental-strip-types --test tests/packing-engine-v5.test.ts tests/auth.test.ts",
     "check": "npm run test && npm run build"
   },
   "dependencies": {

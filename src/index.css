@@ -676,6 +676,43 @@ nav a:hover { color: var(--blue); }
 .quantity-stepper { display: grid; grid-template-columns: 34px 1fr 34px; margin-top: 16px; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; }
 .quantity-stepper button { border: 0; background: #f1f5f9; color: #475569; font-weight: 800; }
 .quantity-stepper input { width: 100%; padding: 8px; border: 0; outline: 0; text-align: center; font-weight: 800; }
+.container-type-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 10px 12px;
+  border: 1px solid #dbe3ec;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #64748b;
+  text-align: left;
+}
+.container-type-toggle > i {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  place-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  background: #fff;
+  color: #fff;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+}
+.container-type-toggle > span { display: flex; flex-direction: column; gap: 2px; }
+.container-type-toggle b { color: #475569; font-size: 10px; }
+.container-type-toggle small { color: #94a3b8; font-size: 8px; }
+.container-type-toggle.active {
+  border-color: #4b83ec;
+  background: #eef4ff;
+  box-shadow: inset 0 0 0 1px #4b83ec;
+}
+.container-type-toggle.active > i { border-color: #2563eb; background: #2563eb; }
+.container-type-toggle.active b { color: #1d4ed8; }
 
 .profile-card {
   display: grid;

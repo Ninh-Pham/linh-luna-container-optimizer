@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  createV4Plan,
-  type V4Issue,
-  type V4Settings,
-} from "../lib/packing-engine-v4";
+  createV5Plan,
+  type V5Issue,
+  type V5Settings,
+} from "../lib/packing-engine-v5";
 
 type CargoItem = {
   id: number;
@@ -24,6 +24,7 @@ type CargoItem = {
 };
 
 type ContainerId = "20GP" | "40GP" | "40HC";
+type ContainerSelection = Record<ContainerId, boolean>;
 
 type ContainerSpec = {
   id: ContainerId;
@@ -86,7 +87,7 @@ type PackedContainer = {
   itemCounts: Record<number, number>;
   usedWeight: number;
   usedVolume: number;
-  issues?: V4Issue[];
+  issues?: V5Issue[];
   confidence?: "high" | "medium" | "low";
   maxFloorPressure?: number;
 };
@@ -98,7 +99,7 @@ type Plan = {
   totalWeight: number;
   totalVolume: number;
   evaluatedPlans: number;
-  solverVersion?: "V4";
+  solverVersion?: "V5";
   confidence?: "high" | "medium" | "low";
   validation?: {
     errors: number;
@@ -155,6 +156,19 @@ const PROFILE_RESERVE: Record<
 };
 
 const COLORS = ["#F97316", "#7C3AED", "#0EA5E9", "#22C55E", "#E11D48", "#EAB308"];
+const DEFAULT_CONTAINER_SELECTION: ContainerSelection = {
+  "20GP": true,
+  "40GP": true,
+  "40HC": true,
+};
+
+const normalizeContainerSelection = (
+  value?: Partial<Record<ContainerId, boolean | number>>,
+): ContainerSelection => ({
+  "20GP": Boolean(value?.["20GP"]),
+  "40GP": Boolean(value?.["40GP"]),
+  "40HC": Boolean(value?.["40HC"]),
+});
 
 const SAMPLE_ITEMS: CargoItem[] = [
   {
@@ -755,7 +769,7 @@ function subtractPacked(remaining: Record<number, number>, packed: PackedContain
 function createPlan(
   items: CargoItem[],
   mode: "auto" | "manual",
-  manualCounts: Record<ContainerId, number>,
+  selectedTypes: Record<ContainerId, number>,
   profile: CalculationProfile,
 ): Plan {
   const cleanItems = items.filter(
@@ -772,7 +786,7 @@ function createPlan(
 
   if (mode === "manual") {
     const requested = CONTAINERS.flatMap((spec) =>
-      Array.from({ length: Math.max(0, manualCounts[spec.id] || 0) }, () => spec),
+      Array.from({ length: Math.max(0, selectedTypes[spec.id] || 0) }, () => spec),
     ).sort((a, b) => b.volume - a.volume);
 
     requested.forEach((spec, index) => {
@@ -1228,13 +1242,11 @@ function ContainerDiagram({
 export default function Home() {
   const [items, setItems] = useState<CargoItem[]>(SAMPLE_ITEMS);
   const [mode, setMode] = useState<"auto" | "manual">("auto");
-  const [manualCounts, setManualCounts] = useState<Record<ContainerId, number>>({
-    "20GP": 0,
-    "40GP": 1,
-    "40HC": 0,
-  });
+  const [selectedTypes, setSelectedTypes] = useState<ContainerSelection>(
+    DEFAULT_CONTAINER_SELECTION,
+  );
   const [profile, setProfile] = useState<CalculationProfile>("operational");
-  const [settings, setSettings] = useState<V4Settings>({
+  const [settings, setSettings] = useState<V5Settings>({
     itemGap: 0.5,
     minSupport: 85,
     cogWarning: 5,
@@ -1254,23 +1266,30 @@ export default function Home() {
       | {
           items?: CargoItem[];
           mode?: "auto" | "manual";
-          manualCounts?: Record<ContainerId, number>;
+          selectedTypes?: Partial<Record<ContainerId, boolean | number>>;
+          manualCounts?: Partial<Record<ContainerId, number>>;
           profile?: CalculationProfile;
-          settings?: V4Settings;
+          settings?: V5Settings;
         }
       | undefined;
     try {
-      const saved = window.localStorage.getItem("linh-luna-tm-v4-project");
+      const saved = window.localStorage.getItem("linh-luna-tm-v5-project");
       if (!saved) return;
       project = JSON.parse(saved);
     } catch {
-      window.localStorage.removeItem("linh-luna-tm-v4-project");
+      window.localStorage.removeItem("linh-luna-tm-v5-project");
       return;
     }
     const timer = window.setTimeout(() => {
       if (Array.isArray(project?.items) && project.items.length) setItems(project.items);
       if (project?.mode) setMode(project.mode);
-      if (project?.manualCounts) setManualCounts(project.manualCounts);
+      if (project?.selectedTypes || project?.manualCounts) {
+        setSelectedTypes(
+          normalizeContainerSelection(
+            project.selectedTypes ?? project.manualCounts,
+          ),
+        );
+      }
       if (project?.profile) setProfile(project.profile);
       if (project?.settings) setSettings(project.settings);
     }, 0);
@@ -1279,10 +1298,10 @@ export default function Home() {
 
   useEffect(() => {
     window.localStorage.setItem(
-      "linh-luna-tm-v4-project",
-      JSON.stringify({ items, mode, manualCounts, profile, settings }),
+      "linh-luna-tm-v5-project",
+      JSON.stringify({ items, mode, selectedTypes, profile, settings }),
     );
-  }, [items, mode, manualCounts, profile, settings]);
+  }, [items, mode, selectedTypes, profile, settings]);
 
   const totals = useMemo(
     () => ({
@@ -1334,11 +1353,11 @@ export default function Home() {
     setItems([
       {
         id: 1,
-        name: "Kiện 120 × 80 × 80",
-        quantity: 70,
-        length: 120,
-        width: 80,
-        height: 80,
+        name: "Mặt hàng 180 × 98 × 98",
+        quantity: 50,
+        length: 180,
+        width: 98,
+        height: 98,
         weight: 200,
         rotatable: true,
         uprightOnly: false,
@@ -1369,23 +1388,23 @@ export default function Home() {
       setNotice("Vui lòng nhập đầy đủ số lượng, kích thước và cân nặng lớn hơn 0.");
       return;
     }
-    if (mode === "manual" && Object.values(manualCounts).every((count) => count <= 0)) {
-      setNotice("Hãy chọn ít nhất 1 container cho phương án thủ công.");
+    if (mode === "manual" && Object.values(selectedTypes).every((selected) => !selected)) {
+      setNotice("Hãy chọn ít nhất 1 loại container được phép sử dụng.");
       return;
     }
     setIsCalculating(true);
     setNotice("");
     window.setTimeout(() => {
       try {
-        const effectiveSettings: V4Settings =
+        const effectiveSettings: V5Settings =
           profile === "reference"
             ? { ...settings, itemGap: 0 }
             : settings;
-        const next = createV4Plan(
+        const next = createV5Plan(
           items,
           CONTAINERS,
           mode,
-          manualCounts,
+          selectedTypes,
           profile,
           effectiveSettings,
         ) as unknown as Plan;
@@ -1416,11 +1435,11 @@ export default function Home() {
         JSON.stringify(
           {
             app: "Linh Luna T&M Container Optimizer",
-            version: 4,
+            version: 5,
             savedAt: new Date().toISOString(),
             items,
             mode,
-            manualCounts,
+            selectedTypes,
             profile,
             settings,
           },
@@ -1432,7 +1451,7 @@ export default function Home() {
     );
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "Linh-Luna-TM-du-an-xep-container-v4.json";
+    link.download = "Linh-Luna-TM-du-an-xep-container-v5.json";
     link.click();
     URL.revokeObjectURL(link.href);
   };
@@ -1444,16 +1463,23 @@ export default function Home() {
         version?: number;
         items?: CargoItem[];
         mode?: "auto" | "manual";
-        manualCounts?: Record<ContainerId, number>;
+        selectedTypes?: Partial<Record<ContainerId, boolean | number>>;
+        manualCounts?: Partial<Record<ContainerId, number>>;
         profile?: CalculationProfile;
-        settings?: V4Settings;
+        settings?: V5Settings;
       };
       if (!Array.isArray(project.items) || !project.items.length) {
         throw new Error("File không có danh sách hàng hợp lệ.");
       }
       setItems(project.items);
       if (project.mode) setMode(project.mode);
-      if (project.manualCounts) setManualCounts(project.manualCounts);
+      if (project.selectedTypes || project.manualCounts) {
+        setSelectedTypes(
+          normalizeContainerSelection(
+            project.selectedTypes ?? project.manualCounts,
+          ),
+        );
+      }
       if (project.profile) setProfile(project.profile);
       if (project.settings) setSettings(project.settings);
       setPlan(null);
@@ -1514,7 +1540,7 @@ export default function Home() {
             </span>
             <span>
               <b>Linh Luna T&amp;M</b>
-              <small>Container Optimizer V4</small>
+              <small>Container Optimizer V5</small>
             </span>
           </a>
           <nav aria-label="Điều hướng chính">
@@ -1522,14 +1548,14 @@ export default function Home() {
             <a href="#container-specs">Thông số container</a>
             <a href="#notes">Lưu ý</a>
           </nav>
-          <span className="status-pill"><i /> V4 · Dữ liệu tính tại thiết bị</span>
+          <span className="status-pill"><i /> V5 · Dữ liệu tính tại thiết bị</span>
         </div>
       </header>
 
       <section className="hero" id="top">
         <div className="shell hero-inner">
           <div>
-            <p className="eyebrow">Bộ giải xếp hàng thực tế V4</p>
+            <p className="eyebrow">Bộ giải xếp hàng thực tế V5</p>
             <h1>Xếp nhiều hàng hơn.<br /><em>Dùng ít container hơn.</em></h1>
             <p className="hero-copy">
               Nhập kích thước và đặc tính hàng hóa. Hệ thống sẽ thử các hướng xoay phù hợp,
@@ -1570,7 +1596,7 @@ export default function Home() {
               Lưu dự án
             </button>
             <button className="text-button benchmark-button" type="button" onClick={loadSeaRatesCase}>
-              Nạp ca đối chiếu 70 kiện
+              Nạp ca đối chiếu 50 kiện
             </button>
             <button className="text-button" type="button" onClick={() => { setItems(SAMPLE_ITEMS); setPlan(null); }}>
               ↺ Khôi phục dữ liệu mẫu
@@ -1770,7 +1796,7 @@ export default function Home() {
               onClick={() => { setMode("manual"); setPlan(null); }}
             >
               <span className="mode-icon">☷</span>
-              <span><b>Tự chọn số lượng container</b><small>Kiểm tra hàng có đủ chỗ hay không</small></span>
+              <span><b>Tự chọn loại container</b><small>V5 tự tìm số lượng ít nhất trong các loại đã chọn</small></span>
               <i className="radio" />
             </button>
           </div>
@@ -1790,17 +1816,29 @@ export default function Home() {
                   <div><dt>Tải tối đa</dt><dd>{formatNumber(spec.maxWeight)} kg</dd></div>
                 </dl>
                 {mode === "manual" && (
-                  <div className="quantity-stepper">
-                    <button type="button" onClick={() => setManualCounts((current) => ({ ...current, [spec.id]: Math.max(0, current[spec.id] - 1) }))}>−</button>
-                    <input
-                      aria-label={`Số lượng container ${spec.id}`}
-                      type="number"
-                      min="0"
-                      value={manualCounts[spec.id]}
-                      onChange={(event) => setManualCounts((current) => ({ ...current, [spec.id]: Math.max(0, Number(event.target.value)) }))}
-                    />
-                    <button type="button" onClick={() => setManualCounts((current) => ({ ...current, [spec.id]: current[spec.id] + 1 }))}>＋</button>
-                  </div>
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={selectedTypes[spec.id]}
+                    className={`container-type-toggle ${selectedTypes[spec.id] ? "active" : ""}`}
+                    onClick={() => {
+                      setSelectedTypes((current) => ({
+                        ...current,
+                        [spec.id]: !current[spec.id],
+                      }));
+                      setPlan(null);
+                    }}
+                  >
+                    <i>{selectedTypes[spec.id] ? "✓" : ""}</i>
+                    <span>
+                      <b>
+                        {selectedTypes[spec.id]
+                          ? "Được phép sử dụng"
+                          : "Không sử dụng"}
+                      </b>
+                      <small>V5 tự tính số lượng tối thiểu</small>
+                    </span>
+                  </button>
                 )}
               </article>
             ))}
@@ -1840,7 +1878,7 @@ export default function Home() {
           <div className="safety-settings">
             <div className="safety-settings-heading">
               <div>
-                <p className="profile-title">Ràng buộc vận hành V4</p>
+                <p className="profile-title">Ràng buộc vận hành V5</p>
                 <p className="profile-copy">
                   Các ngưỡng này được kiểm tra trong lúc tìm vị trí, không chỉ báo
                   sau khi đã xếp.
@@ -1936,7 +1974,7 @@ export default function Home() {
                   onChange={(event) => {
                     setSettings((current) => ({
                       ...current,
-                      searchQuality: event.target.value as V4Settings["searchQuality"],
+                      searchQuality: event.target.value as V5Settings["searchQuality"],
                     }));
                     setPlan(null);
                   }}
@@ -1958,7 +1996,7 @@ export default function Home() {
           disabled={isCalculating}
         >
           <span>{isCalculating ? "◌" : "✦"}</span>{" "}
-          {isCalculating ? "Đang kiểm tra và tối ưu..." : "Tính toán phương án V4"}{" "}
+          {isCalculating ? "Đang kiểm tra và tối ưu..." : "Tính toán phương án V5"}{" "}
           <b>→</b>
         </button>
       </section>
@@ -1972,12 +2010,12 @@ export default function Home() {
                 <h2>{remainingCount ? "Phương án hiện tại chưa xếp hết hàng" : "Đã tìm thấy phương án phù hợp"}</h2>
                 <p>
                   {mode === "auto"
-                    ? `Bộ giải V4 đã so sánh 20GP, 40GP và 40HC · ${
+                    ? `Bộ giải V5 đã so sánh 20GP, 40GP và 40HC · ${
                         profile === "operational" ? "có khoảng dự phòng vận hành" : "theo kích thước danh nghĩa"
                       } · đã đánh giá ${formatNumber(plan.evaluatedPlans)} phương án và ${
                         formatNumber(plan.validation?.checks || 0)
                       } phép kiểm tra hình học/an toàn.`
-                    : "Kết quả dựa trên đúng số lượng container bạn đã chọn."}
+                    : "Bộ giải V5 chỉ dùng các loại container bạn cho phép và đã tối thiểu hóa tổng số container."}
                 </p>
               </div>
               <div className="results-actions">
@@ -2020,7 +2058,7 @@ export default function Home() {
                 <b>Chưa thể xếp hết {formatNumber(remainingCount)} kiện.</b>
                 <span>
                   {mode === "manual"
-                    ? "Hãy tăng số lượng container hoặc chuyển sang “Tối ưu tự động”."
+                    ? "Hãy cho phép thêm loại container khác hoặc chuyển sang “Tối ưu tự động”."
                     : "Hệ thống đã giữ lại các kiện không thể bố trí an toàn trong phương án hiện tại."}
                 </span>
                 <ul>
@@ -2191,7 +2229,7 @@ export default function Home() {
         <article>
           <span>i</span>
           <div>
-            <h3>Cách hệ thống V4 tính</h3>
+            <h3>Cách hệ thống V5 tính</h3>
             <p>
               Bộ giải kết hợp xếp tầng chính xác cho hàng đồng nhất với tìm kiếm điểm cực trị
               3D cho hàng hỗn hợp. Mỗi vị trí được kiểm tra va chạm, cửa, mặt đỡ, tâm đỡ,
@@ -2218,7 +2256,7 @@ export default function Home() {
         <div className="shell">
           <a className="brand footer-brand" href="#top">
             <span className="brand-mark"><span /><span /><span /></span>
-            <span><b>Linh Luna T&amp;M</b><small>Container Optimizer V4</small></span>
+            <span><b>Linh Luna T&amp;M</b><small>Container Optimizer V5</small></span>
           </a>
           <p>Công cụ hỗ trợ lập kế hoạch xếp hàng container 20GP · 40GP · 40HC</p>
         </div>
